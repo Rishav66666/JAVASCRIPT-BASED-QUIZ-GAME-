@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Quiz Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 1s ease-in-out;
+    }
+
+    #quiz-container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .option-btn {
+      display: block;
+      width: 100%;
+      margin: 5px 0;
+      padding: 10px;
+      border: 2px solid #007BFF;
+      border-radius: 5px;
+      background: white;
+      color: #007BFF;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .option-btn:hover {
+      background: #007BFF;
+      color: white;
+    }
+
+    #timer {
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    #result-container {
+      margin-top: 20px;
+      max-width: 700px;
+      margin-inline: auto;
+    }
+
+    #restart-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      display: none;
+      cursor: pointer;
+    }
+
+    .question-review {
+      text-align: left;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .correct {
+      color: green;
+    }
+
+    .incorrect {
+      color: red;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div id="quiz-container">
+    <h1>Quiz Game</h1>
+    <div id="timer">Time: 60</div>
+    <div id="question">Question text</div>
+    <div id="choices">
+      <button class="option-btn" data-index="0">Option 1</button>
+      <button class="option-btn" data-index="1">Option 2</button>
+      <button class="option-btn" data-index="2">Option 3</button>
+      <button class="option-btn" data-index="3">Option 4</button>
+    </div>
+  </div>
+
+  <div id="result-container"></div>
+  <button id="restart-btn">Restart Quiz</button>
+
+  <script>
+    const questionPool = [
+      {
+        question: "What is the capital of France?",
+        choices: ["Berlin", "Paris", "Madrid", "Rome"],
+        answer: 1,
+        backgroundImage: "1.jpg"
+      },
+      {
+        question: "Which language is primarily used for web development?",
+        choices: ["Python", "Java", "C#", "JavaScript"],
+        answer: 3,
+        backgroundImage: "2.jpg"
+      },
+      {
+        question: "What is the largest planet in our solar system?",
+        choices: ["Earth", "Jupiter", "Mars", "Saturn"],
+        answer: 1,
+        backgroundImage: "3.jpg"
+      },
+      {
+        question: "What does HTML stand for?",
+        choices: [
+          "Hyper Text Markup Language",
+          "Home Tool Markup Language",
+          "Hyperlinks and Text Markup Language",
+          "None of these"
+        ],
+        answer: 0,
+        backgroundImage: "4.jpg"
+      },
+      {
+        question: "Who painted the Mona Lisa?",
+        choices: ["Van Gogh", "Picasso", "Leonardo da Vinci", "Michelangelo"],
+        answer: 2,
+        backgroundImage: "5.jpg"
+      },
+      {
+        question: "Which element has the chemical symbol 'O'?",
+        choices: ["Gold", "Oxygen", "Osmium", "Iron"],
+        answer: 1,
+        backgroundImage: "6.jpg"
+      },
+      {
+        question: "How many continents are there?",
+        choices: ["5", "6", "7", "8"],
+        answer: 2,
+        backgroundImage: "7.jpg"
+      },
+      {
+        question: "What is 9 × 9?",
+        choices: ["81", "72", "99", "89"],
+        answer: 0,
+        backgroundImage: "8.jpg"
+      },
+      {
+        question: "Which year did the Titanic sink?",
+        choices: ["1912", "1905", "1920", "1898"],
+        answer: 0,
+        backgroundImage: "9.jpg"
+      },
+      {
+        question: "What gas do plants absorb from the atmosphere?",
+        choices: ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
+        answer: 2,
+        backgroundImage: "10.jpg"
+      }
+    ];
+
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timeLeft = 60;
+    let timerId;
+    let userAnswers = [];
+
+    const timerEl = document.getElementById("timer");
+    const questionEl = document.getElementById("question");
+    const optionButtons = document.querySelectorAll(".option-btn");
+    const resultContainer = document.getElementById("result-container");
+    const restartBtn = document.getElementById("restart-btn");
+    const quizContainer = document.getElementById("quiz-container");
+
+    function getRandomQuestions(count) {
+      const shuffled = [...questionPool].sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, count);
+    }
+
+    function startQuiz() {
+      currentQuestionIndex = 0;
+      score = 0;
+      timeLeft = 60;
+      userAnswers = [];
+      questions = getRandomQuestions(5);
+      quizContainer.style.display = "block";
+      resultContainer.innerHTML = "";
+      restartBtn.style.display = "none";
+      showQuestion();
+      startTimer();
+    }
+
+    function showQuestion() {
+      const current = questions[currentQuestionIndex];
+      questionEl.textContent = current.question;
+
+      // Animated fade
+      quizContainer.classList.remove("fade");
+      void quizContainer.offsetWidth; // trigger reflow
+      quizContainer.classList.add("fade");
+
+      // Set background
+      document.body.style.backgroundImage = `url('${current.backgroundImage}')`;
+
+      optionButtons.forEach((btn, i) => {
+        btn.textContent = current.choices[i];
+        btn.disabled = false;
+      });
+    }
+
+    function selectAnswer(e) {
+      const selectedIndex = parseInt(e.target.getAttribute("data-index"));
+      const correctIndex = questions[currentQuestionIndex].answer;
+      userAnswers.push(selectedIndex);
+      if (selectedIndex === correctIndex) score++;
+
+      optionButtons.forEach(btn => btn.disabled = true);
+      currentQuestionIndex++;
+
+      setTimeout(() => {
+        if (currentQuestionIndex < questions.length) {
+          showQuestion();
+        } else {
+          endQuiz();
+        }
+      }, 400);
+    }
+
+    function startTimer() {
+      timerEl.textContent = "Time: " + timeLeft;
+      timerId = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = "Time: " + timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerId);
+          endQuiz();
+        }
+      }, 1000);
+    }
+
+    function endQuiz() {
+      clearInterval(timerId);
+      quizContainer.style.display = "none";
+
+      let resultMessage = score >= questions.length / 2 ? "Well done!" : "Try again!";
+      resultContainer.innerHTML = `
+        <p>Your Score: ${score} / ${questions.length}</p>
+        <p>${resultMessage}</p>
+        <h3>Review:</h3>
+      `;
+
+      questions.forEach((q, i) => {
+        const userAns = userAnswers[i];
+        const correctAns = q.answer;
+
+        resultContainer.innerHTML += `
+          <div class="question-review">
+            <strong>Q${i + 1}: ${q.question}</strong><br>
+            Your answer: <span class="${userAns === correctAns ? 'correct' : 'incorrect'}">
+              ${q.choices[userAns] || 'No answer'}
+            </span><br>
+            Correct answer: <span class="correct">${q.choices[correctAns]}</span>
+          </div>
+        `;
+      });
+
+      restartBtn.style.display = "inline-block";
+    }
+
+    optionButtons.forEach(btn => btn.addEventListener("click", selectAnswer));
+    restartBtn.addEventListener("click", startQuiz);
+
+    startQuiz();
+  </script>
+</body>
+</html>
